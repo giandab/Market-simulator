@@ -1,4 +1,7 @@
 import yfinance as YahooFin
+import numpy as np
+import matplotlib
+
 
 def main():
     user_input=input("Type '-info [ticker]' to get general information")
