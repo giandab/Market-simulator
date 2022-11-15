@@ -1,6 +1,6 @@
 import yfinance as YahooFin
 import numpy as np
-import matplotlib
+import matplotlib.pyplot as plt
 
 
 def main():
@@ -30,6 +30,9 @@ def general_stock_info(ticker):
     main()
 
 def price_graph(ticker, time):
-    print(ticker.history(time))
+    gr = ticker.history(time)
+    print(gr)
+    gr.plot(kind='line', y='Close')
+    plt.show()
 
 main()
