@@ -2,6 +2,7 @@ import yfinance as YahooFin
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+import sqlite3
 
 # individual positions taken by user
 class Position:
@@ -24,6 +25,14 @@ class Position:
         else:
             return 1- (self.purchase_price/current_price)
 
+#Plan to replace csv with database
+connection = sqlite3.connect("positions.db")
+#connection.execute("""CREATE TABLE positions (ID INTEGER PRIMARY KEY AUTOINCREMENT, PRODUCT TEXT NOT NULL, QUANTITY INT NOT NULL, PURCHASE_PRICE REAL NOT NULL);""")
+#connection.execute("""INSERT INTO positions (PRODUCT,QUANTITY,PURCHASE_PRICE) VALUES ('Cash',100000,1);""")
+
+cursor = connection.execute("SELECT * FROM positions")
+for row in cursor:
+    print(row)
 # read data from csv file containg positions.
 file = "assets.csv"
 positions = []
@@ -60,6 +69,7 @@ def main():
         ticker_string = ticker_range_string.partition(" ")[0]
         ticker = YahooFin.Ticker(ticker_string)
         amount = ticker_range_string.partition(" ")[2]
+        # Must add functionality to check if the user has enough to sell or enough cash to buy
         positions.append(Position(ticker_string,amount,ticker.info['regularMarketPrice']))
         main()
 
