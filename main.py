@@ -1,7 +1,6 @@
 import yfinance as YahooFin
 import numpy as np
 import matplotlib.pyplot as plt
-import csv
 import sqlite3
 
 
