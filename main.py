@@ -4,47 +4,21 @@ import matplotlib.pyplot as plt
 import csv
 import sqlite3
 
-# individual positions taken by user
-class Position:
-    def __init__(self, product, amount, purchase_price):
-        self.product= product
-        self.amount = amount
-        self.purchase_price = purchase_price
-
-    def profit_loss(self):
-        ticker = YahooFin.Ticker(self.product)
-        current_price = ticker.info['regularMarketPrice']
-        profit_loss = self.amount*(current_price - self.purchase_price)
-        return profit_loss
-
-    def percentage_change(self):
-        ticker = YahooFin.Ticker(self.product)
-        current_price = ticker.info['regularMarketPrice']
-        if self.purchase_price > current_price:
-            return (-1+(current_price/self.purchase_price))
-        else:
-            return 1- (self.purchase_price/current_price)
 
 #Plan to replace csv with database
 connection = sqlite3.connect("positions.db")
 #connection.execute("""CREATE TABLE positions (ID INTEGER PRIMARY KEY AUTOINCREMENT, PRODUCT TEXT NOT NULL, QUANTITY INT NOT NULL, PURCHASE_PRICE REAL NOT NULL);""")
 #connection.execute("""INSERT INTO positions (PRODUCT,QUANTITY,PURCHASE_PRICE) VALUES ('Cash',100000,1);""")
-
+positions = {}
 cursor = connection.execute("SELECT * FROM positions")
+largest_key = 0
 for row in cursor:
-    print(row)
-# read data from csv file containg positions.
-file = "assets.csv"
-positions = []
-try:
-    with open(file,"r") as csvfile:
-        csvreader = csv.reader(csvfile)
-        for row in csvreader:
-            positions.append(Position(row[0],row[1],row[2]))
-except:
-    pass
+    print("row",row)
+    new_dict = {row[1]:row[2],"purchase_price":row[3]}
+    positions.update({row[0]:new_dict})
+    largest_key+=1
 
-#main program loop
+#main loop
 def main():
 
     # Main input section
@@ -69,13 +43,33 @@ def main():
         ticker_string = ticker_range_string.partition(" ")[0]
         ticker = YahooFin.Ticker(ticker_string)
         amount = ticker_range_string.partition(" ")[2]
-        # Must add functionality to check if the user has enough to sell or enough cash to buy
-        positions.append(Position(ticker_string,amount,ticker.info['regularMarketPrice']))
+
+        if (ticker.info['regularMarketPrice'])*amount > (positions[1]["Cash"]): #if user doesn't have enough cash
+            print("Insufficient cash")
+            print("------------------")
+
+        else: # Finding if the user already owns the product so record can be updated
+            for i in positions:
+                for x in positions[i]:
+                    if x == ticker_string and ((positions[i][x] +amount) <0):
+                        print("You don't own the amount of stock you are trying to sell")
+                    elif x == ticker_string:
+                        # Need to work out the new purchase price as the average of the previous and new - second bracketed term must be replaced
+                        positions[i].update({x:(positions[i][x] +amount)})
+                        connection.execute("""UPDATE positions SET QUANTITY = %s, PURCHASE_PRICE = %s WHERE PRODUCT = %s""",((positions[i][x] +amount),ticker.info['regularMarketPrice'],ticker_string))
+
+                    else: # user doesn't own product so a new record is created
+                        new_entry = {ticker_string:amount,"purchase_price":ticker.info['regularMarketPrice']}
+                        positions.update({largest_key+1:new_entry})
+                        largest_key+=1
+                        connection.execute("""INSERT INTO positions (PRODUCT,QUANTITY,PURCHASE_PRICE) VALUES (%s,%s,%s);""",(ticker_string,amount,ticker.info['regularMarketPrice']))
         main()
 
     elif user_input=="-exit":
-        write_data(positions)
         quit()
+    else:
+        print("Invalid input")
+        main()
 
 #Get info list for a certain product
 def general_stock_info(ticker):
@@ -94,14 +88,6 @@ def price_graph(ticker, time,ticker_string):
     plt.ylabel("Price")
     plt.show()
     main()
-
-
-# Using CSV file to store transactions at the end
-def write_data(positions):
-    with open(file,"a", newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        for i in positions:
-            csvwriter.writerow([i.product,i.amount,i.purchase_price])
 
 
 main()
