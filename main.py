@@ -14,12 +14,12 @@ cursor = conn.cursor()
 # Create a FastAPI application
 app = FastAPI()
 
-# Define a route at the root web address ("/")
+
 @app.post("/signup")
 def signup(signup:Signup):
 
-    cursor.execute("SELECT * FROM Users WHERE Username  = (%s)" % (signup.username))
-    result = cursor.fetchall()
+    cursor.execute("SELECT * FROM Users WHERE Username  = '%s'" % (signup.username))
+    result = cursor.fetchall() 
 
     if len(result)!=0:
 
@@ -27,9 +27,7 @@ def signup(signup:Signup):
     
     else:
 
-        statement = "INSERT INTO Users (Username,Password) VALUES ({signup.username},{signup.password})"
-
-        cursor.execute(statement)
+        cursor.execute(("INSERT INTO Users (Username,Password) VALUES ('%s','%s')"%(signup.username,signup.password)))
         conn.commit()
 
         return {"message":"Sucessfully signed up"}
