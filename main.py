@@ -9,7 +9,7 @@ from models.Signup import Signup
 params = config()
 conn = psycopg2.connect(**params)
 
-cursor = conn.cursor
+cursor = conn.cursor()
 
 # Create a FastAPI application
 app = FastAPI()
@@ -18,8 +18,7 @@ app = FastAPI()
 @app.post("/signup")
 def signup(signup:Signup):
 
-    check_username = "SELECT * FROM Users WHERE Username  = {signup.username}"
-    cursor.execute(check_username)
+    cursor.execute("SELECT * FROM Users WHERE Username  = (%s)" % (signup.username))
     result = cursor.fetchall()
 
     if len(result)!=0:
