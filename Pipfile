@@ -8,6 +8,8 @@ fastapi = "*"
 uvicorn = "*"
 psycopg2 = "*"
 pydantic = "*"
+pytest = "*"
+httpx = "*"
 
 [dev-packages]
 

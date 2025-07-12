@@ -1,12 +1,9 @@
 from fastapi import FastAPI
 import psycopg2
-from pydantic import BaseModel
 from config import config
+from models.Signup import Signup
 
 
-class Signup(BaseModel):
-    username: str
-    password: str
 
 #database connection
 params = config()
@@ -20,8 +17,36 @@ app = FastAPI()
 # Define a route at the root web address ("/")
 @app.post("/signup")
 def signup(signup:Signup):
-    statement = "INSERT INTO Users (Username,Password) VALUES ({signup.username},{signup.password})"
+
+    check_username = "SELECT * FROM Users WHERE Username  = {signup.username}"
+    cursor.execute(check_username)
+    result = cursor.fetchall()
+
+    if len(result)!=0:
+
+        return {"message":"username {signup.username} is not available"}
+    
+    else:
+
+        statement = "INSERT INTO Users (Username,Password) VALUES ({signup.username},{signup.password})"
+
+        cursor.execute(statement)
+        conn.commit()
+
+        return {"message":"Sucessfully signed up"}
 
 @app.post("/login")
-def login(signup:Signup):
-    statement = "SELECT * FROM Users WHERE Username = {signup.username} AND Password = {signup.password}"
+def login(login:Signup):
+
+    statement = "SELECT * FROM Users WHERE Username = {login.username} AND Password = {login.password}"
+
+    cursor.execute(statement)
+
+    result = cursor.fetchall()
+
+    if len(result)!=1:
+        return {"message":"login failed"}
+    
+    else:
+
+        return {"message": "logged in successfully"}
