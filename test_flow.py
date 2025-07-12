@@ -22,6 +22,7 @@ def test_signup():
 
 
 
+
 #Cleanup - delete records and close connection
 cursor.execute("DELETE FROM Users WHERE Username = '%s'"%(user1.username))
 

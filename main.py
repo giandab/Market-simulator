@@ -2,8 +2,10 @@ from fastapi import FastAPI
 import psycopg2
 from config import config
 from models.Signup import Signup
+from models.CashAmount import CashAmount
 
 
+global UserId
 
 #database connection
 params = config()
@@ -39,7 +41,10 @@ def login(login:Signup):
 
     cursor.execute(statement)
 
-    result = cursor.fetchall()
+    result = cursor.fetchone()
+
+    #Set the userId so that it can be used in future queries
+    UserId = result[0]
 
     if len(result)!=1:
         return {"message":"login failed"}
@@ -47,3 +52,12 @@ def login(login:Signup):
     else:
 
         return {"message": "logged in successfully"}
+    
+
+@app.post("/deposit")
+def deposit_cash(amount:CashAmount):
+
+    #Inserts new record for cash amount or updates if there is an existing one
+    cursor.execute("INSERT INTO Positions (UserId,Amount,Product) VALUES ('%s','%s','%s') ON CONFLICT (Product) DO UPDATE SET Amount = Amount + '%s'" % (UserId,amount.amount,"cash", amount.amount))
+
+    return {"message":"successfully deposited cash"}
