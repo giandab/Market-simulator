@@ -4,6 +4,10 @@ from main import app
 import psycopg2
 from config import config
 
+#Tests the initial flow of the service
+#A user that has signed up and logged in
+#Can successfully withdraw and deposit cash
+
 #database connection
 params = config()
 conn = psycopg2.connect(**params)
@@ -17,14 +21,23 @@ client = TestClient(app)
 def test_signup():
 
     response = client.post("/signup",json = {"username":user1.username,"password":user1.password})
+    assert response.json()["message"] == "Sucessfully signed up"
 
-    assert response.json() == {"message":"Sucessfully signed up"}
+def test_login():
 
+    response = client.post("/login",json = {"username":user1.username,"password":user1.password})
 
+    assert response.json()["message"] == "logged in successfully"
 
+def test_deposit():
 
-#Cleanup - delete records and close connection
-cursor.execute("DELETE FROM Users WHERE Username = '%s'"%(user1.username))
+    response = client.post("/deposit",json = {"amount":1000,"username":user1.username,"password":user1.password})
 
-conn.commit()
-conn.close()
+    assert response.json()["message"] == "successfully deposited cash"
+
+def test_cleanup():
+    #Cleanup - delete records and close connection
+    cursor.execute("DELETE FROM Users WHERE Username = '%s'"%(user1.username))
+
+    conn.commit()
+    conn.close()

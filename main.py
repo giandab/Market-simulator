@@ -37,27 +37,39 @@ def signup(signup:Signup):
 @app.post("/login")
 def login(login:Signup):
 
-    statement = "SELECT * FROM Users WHERE Username = {login.username} AND Password = {login.password}"
+    cursor.execute("SELECT * FROM Users WHERE Username = '%s' AND Password = '%s'" % (login.username,login.password))
 
-    cursor.execute(statement)
-
-    result = cursor.fetchone()
+    result = cursor.fetchall()
+    print(result)
 
     #Set the userId so that it can be used in future queries
-    UserId = result[0]
+    UserId = result[0][0]
 
     if len(result)!=1:
         return {"message":"login failed"}
     
     else:
 
-        return {"message": "logged in successfully"}
+        return {"message": "logged in successfully","UserId": UserId}
     
 
 @app.post("/deposit")
 def deposit_cash(amount:CashAmount):
 
-    #Inserts new record for cash amount or updates if there is an existing one
-    cursor.execute("INSERT INTO Positions (UserId,Amount,Product) VALUES ('%s','%s','%s') ON CONFLICT (Product) DO UPDATE SET Amount = Amount + '%s'" % (UserId,amount.amount,"cash", amount.amount))
+    login_data = Signup(username = amount.username,password = amount.password)
+    response = login(login_data)
 
-    return {"message":"successfully deposited cash"}
+    print(amount.__str__)
+
+    if response["message"] == "logged in successfully":
+
+        UserId = response["UserId"]
+
+        #Inserts new record for cash amount or updates if there is an existing one
+        cursor.execute("INSERT INTO Positions (UserId,Amount,Product) VALUES ('%s','%s','%s') ON CONFLICT (UserId,Product) DO UPDATE SET Amount = Positions.Amount + '%s' " % (UserId,amount.amount,"cash", amount.amount))
+        conn.commit()
+
+        return {"message":"successfully deposited cash"}
+    
+    else:
+        return {"message": "unable to deposit"}
