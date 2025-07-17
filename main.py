@@ -73,3 +73,33 @@ def deposit_cash(amount:CashAmount):
     
     else:
         return {"message": "unable to deposit"}
+    
+@app.post("/withdraw")
+def withdraw_cash(amount:CashAmount):
+
+    login_data = Signup(username = amount.username,password = amount.password)
+    response = login(login_data)
+
+    print(amount.__str__)
+
+    if response["message"] == "logged in successfully":
+
+        UserId = response["UserId"]
+
+        cursor.execute("SELECT Amount FROM Positions WHERE UserId = '%s' AND Product = 'cash'" % (UserId))
+
+        current_amount = cursor.fetchall()[0][0]
+
+        if current_amount >= amount.amount:
+
+            cursor.execute("UPDATE Positions SET Amount = Positions.Amount - '%s' WHERE UserId = '%s' AND Product = 'cash'"%(amount.amount,UserId))
+            conn.commit()
+
+            return {"message": "successfully withdrew cash"}
+
+        else:
+
+            return {"message":"insufficient funds"}
+    
+    else:
+        return {"message": "unable to withdraw"}

@@ -35,6 +35,18 @@ def test_deposit():
 
     assert response.json()["message"] == "successfully deposited cash"
 
+def test_withdraw():
+
+    response = client.post("/withdraw", json = {"amount":500,"username":user1.username,"password":user1.password})
+
+    assert response.json()["message"] == "successfully withdrew cash"
+
+def test_withdraw_overlimit():
+
+    response = client.post("/withdraw", json = {"amount":5000,"username":user1.username,"password":user1.password})
+
+    assert response.json()["message"] == "insufficient funds"
+
 def test_cleanup():
     #Cleanup - delete records and close connection
     cursor.execute("DELETE FROM Users WHERE Username = '%s'"%(user1.username))
