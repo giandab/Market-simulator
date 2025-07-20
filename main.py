@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 import psycopg2
 from config import config
+from models import Product
 from models.Signup import Signup
 from models.CashAmount import CashAmount
+import datetime
 
 
 global UserId
@@ -64,9 +66,11 @@ def deposit_cash(amount:CashAmount):
     if response["message"] == "logged in successfully":
 
         UserId = response["UserId"]
+        date = datetime.datetime.now().strftime("%Y-%m-%d")
 
         #Inserts new record for cash amount or updates if there is an existing one
         cursor.execute("INSERT INTO Positions (UserId,Amount,Product) VALUES ('%s','%s','%s') ON CONFLICT (UserId,Product) DO UPDATE SET Amount = Positions.Amount + '%s' " % (UserId,amount.amount,"cash", amount.amount))
+        cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Date) VALUES ('%s','%s','%s','%s','%s')" % (UserId,"cash",amount.amount,1,date))
         conn.commit()
 
         return {"message":"successfully deposited cash"}
@@ -85,6 +89,7 @@ def withdraw_cash(amount:CashAmount):
     if response["message"] == "logged in successfully":
 
         UserId = response["UserId"]
+        date = datetime.datetime.now().strftime("%Y-%m-%d")
 
         cursor.execute("SELECT Amount FROM Positions WHERE UserId = '%s' AND Product = 'cash'" % (UserId))
 
@@ -93,6 +98,7 @@ def withdraw_cash(amount:CashAmount):
         if current_amount >= amount.amount:
 
             cursor.execute("UPDATE Positions SET Amount = Positions.Amount - '%s' WHERE UserId = '%s' AND Product = 'cash'"%(amount.amount,UserId))
+            cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Date) VALUES ('%s','%s','%s','%s','%s')" % (UserId,"cash",-amount.amount,1,date))
             conn.commit()
 
             return {"message": "successfully withdrew cash"}
