@@ -10,6 +10,7 @@ psycopg2 = "*"
 pydantic = "*"
 pytest = "*"
 httpx = "*"
+yfinance = "*"
 
 [dev-packages]
 

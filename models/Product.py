@@ -1,5 +1,5 @@
 from models.Signup import Signup
 
 class Product(Signup):
-    product: str
+    name: str
     amount: float

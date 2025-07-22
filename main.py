@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 import psycopg2
 from config import config
-from models import Product
+from models.Product import Product
 from models.Signup import Signup
 from models.CashAmount import CashAmount
 import datetime
+import yfinance as yf
 
 
 global UserId
@@ -23,11 +24,12 @@ app = FastAPI()
 def signup(signup:Signup):
 
     cursor.execute("SELECT * FROM Users WHERE Username  = '%s'" % (signup.username))
-    result = cursor.fetchall() 
+    result = cursor.fetchall()
+    print(result) 
 
     if len(result)!=0:
 
-        return {"message":"username {signup.username} is not available"}
+        return {"message":"username %s is not available"%(signup.username)}
     
     else:
 
@@ -42,7 +44,6 @@ def login(login:Signup):
     cursor.execute("SELECT * FROM Users WHERE Username = '%s' AND Password = '%s'" % (login.username,login.password))
 
     result = cursor.fetchall()
-    print(result)
 
     #Set the userId so that it can be used in future queries
     UserId = result[0][0]
@@ -60,8 +61,6 @@ def deposit_cash(amount:CashAmount):
 
     login_data = Signup(username = amount.username,password = amount.password)
     response = login(login_data)
-
-    print(amount.__str__)
 
     if response["message"] == "logged in successfully":
 
@@ -83,8 +82,6 @@ def withdraw_cash(amount:CashAmount):
 
     login_data = Signup(username = amount.username,password = amount.password)
     response = login(login_data)
-
-    print(amount.__str__)
 
     if response["message"] == "logged in successfully":
 
@@ -109,3 +106,39 @@ def withdraw_cash(amount:CashAmount):
     
     else:
         return {"message": "unable to withdraw"}
+    
+@app.post("/buy")
+def buyProduct(product:Product):
+
+    login_data = Signup(username = product.username,password = product.password)
+    response = login(login_data)
+
+
+    if response["message"] == "logged in successfully":
+
+        #Get price of product and payment amount
+        UserId = response["UserId"]
+        date = datetime.datetime.now().strftime("%Y-%m-%d")
+        ticker = yf.Ticker(product.name)
+        last_price = ticker.fast_info["lastPrice"]
+        payment = last_price*product.amount
+
+        #Check if user has enough cash
+        cursor.execute("SELECT Amount FROM Positions WHERE UserId = '%s' AND Product = 'cash'" % (UserId))
+        current_amount = cursor.fetchall()[0][0]
+
+        if current_amount>= payment:
+            cursor.execute("UPDATE Positions SET Amount = Positions.Amount - '%s' WHERE UserId = '%s' AND Product = 'cash'"%(payment,UserId))
+            cursor.execute("INSERT INTO Positions (UserId,Amount,Product) VALUES ('%s','%s','%s') ON CONFLICT (UserId,Product) DO UPDATE SET Amount = Positions.Amount + '%s' " % (UserId,product.amount,product.name, product.amount))
+            cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Date) VALUES ('%s','%s','%s','%s','%s')" % (UserId,product.name,product.amount,last_price,date))
+            conn.commit()
+
+            return {"message":"Sucessfully executed buy"}
+
+        else:
+            return {"message":"Insufficient funds"}
+        
+        
+
+    else:
+        return {"message": "unable to buy"}    
