@@ -27,9 +27,16 @@ def test_setup():
 def test_buy():
 
     response = client.post("/buy",json = {"username":user1.username,"password":user1.password,"name":"AAPL","amount":1})
-    print(response.json())
+    response1 = client.post("/login",json = {"username":user1.username,"password":user1.password})
+    cursor.execute("SELECT Amount FROM Positions WHERE UserId = '%s' AND Product = 'AAPL'" % (response1.json()["UserId"]))
+    prod_amount = cursor.fetchall()[0][0]
     assert response.json()["message"] == "Sucessfully executed buy"
+    assert prod_amount == 1
 
+def test_buy_excessive():
+
+    response = client.post("/buy",json = {"username":user1.username,"password":user1.password,"name":"AAPL","amount":100})
+    assert response.json()["message"] == "Insufficient funds"
 
 def test_cleanup():
     #Cleanup - delete records and close connection
