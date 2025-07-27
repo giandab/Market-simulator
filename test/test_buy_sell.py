@@ -27,9 +27,8 @@ def test_setup():
 def test_buy():
 
     response = client.post("/buy",json = {"username":user1.username,"password":user1.password,"name":"AAPL","amount":1})
-    response1 = client.post("/login",json = {"username":user1.username,"password":user1.password})
-    cursor.execute("SELECT Amount FROM Positions WHERE UserId = '%s' AND Product = 'AAPL'" % (response1.json()["UserId"]))
-    prod_amount = cursor.fetchall()[0][0]
+    prod_amount = helper_check_amount_in_db("AAPL")
+
     assert response.json()["message"] == "Sucessfully executed buy"
     assert prod_amount == 1
 
@@ -38,9 +37,29 @@ def test_buy_excessive():
     response = client.post("/buy",json = {"username":user1.username,"password":user1.password,"name":"AAPL","amount":100})
     assert response.json()["message"] == "Insufficient funds"
 
+def test_sell():
+    response = client.post("/sell",json = {"username":user1.username,"password":user1.password,"name":"AAPL","amount":1})
+
+    product_amount = helper_check_amount_in_db("AAPL")
+    assert response.json()["message"] == "Sucessfully executed sell"
+    assert product_amount == 0.0
+
+def test_sell_excessive():
+
+    response = client.post("/sell",json = {"username":user1.username,"password":user1.password,"name":"AAPL","amount":100})
+    assert response.json()["message"] == "Not enough units in account"
+
 def test_cleanup():
     #Cleanup - delete records and close connection
     cursor.execute("DELETE FROM Users WHERE Username = '%s'"%(user1.username))
 
     conn.commit()
     conn.close()
+
+
+def helper_check_amount_in_db(productName):
+    #Checking amount of product in DB
+    response_login = client.post("/login",json = {"username":user1.username,"password":user1.password})
+    cursor.execute("SELECT Amount FROM Positions WHERE UserId = '%s' AND Product = '%s'" % (response_login.json()["UserId"],productName))
+    product_amount = cursor.fetchall()[0][0]
+    return product_amount
