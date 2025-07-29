@@ -27,5 +27,8 @@ passwore=<YourPassword>
 host = localhost
 ```
 
-4. Run `pipenv shell` to start the virtual environment.
-5. Run `uvicorn main:app` to start the local server.
+4. Run the `db_setup.py` file to create the tables.
+5. Run `pipenv shell` to start the virtual environment.
+6. Run `uvicorn main:app` to start the local server.
+
+To run local tests use the command `python -m pytest`
