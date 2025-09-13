@@ -65,11 +65,11 @@ def deposit_cash(amount:CashAmount):
     if response["message"] == "logged in successfully":
 
         UserId = response["UserId"]
-        date = datetime.datetime.now().strftime("%Y-%m-%d")
+        timestamp = datetime.datetime.now()
 
         #Inserts new record for cash amount or updates if there is an existing one
         cursor.execute("INSERT INTO Positions (UserId,Amount,Product) VALUES ('%s','%s','%s') ON CONFLICT (UserId,Product) DO UPDATE SET Amount = Positions.Amount + '%s' " % (UserId,amount.amount,"cash", amount.amount))
-        cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Date) VALUES ('%s','%s','%s','%s','%s')" % (UserId,"cash",amount.amount,1,date))
+        cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Timestamp) VALUES ('%s','%s','%s','%s','%s')" % (UserId,"cash",amount.amount,1,timestamp))
         conn.commit()
 
         return {"message":"successfully deposited cash"}
@@ -86,7 +86,7 @@ def withdraw_cash(amount:CashAmount):
     if response["message"] == "logged in successfully":
 
         UserId = response["UserId"]
-        date = datetime.datetime.now().strftime("%Y-%m-%d")
+        timestamp = datetime.datetime.now()
 
         cursor.execute("SELECT Amount FROM Positions WHERE UserId = '%s' AND Product = 'cash'" % (UserId))
 
@@ -95,7 +95,7 @@ def withdraw_cash(amount:CashAmount):
         if current_amount >= amount.amount:
 
             cursor.execute("UPDATE Positions SET Amount = Positions.Amount - '%s' WHERE UserId = '%s' AND Product = 'cash'"%(amount.amount,UserId))
-            cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Date) VALUES ('%s','%s','%s','%s','%s')" % (UserId,"cash",-amount.amount,1,date))
+            cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Timestamp) VALUES ('%s','%s','%s','%s','%s')" % (UserId,"cash",-amount.amount,1,timestamp))
             conn.commit()
 
             return {"message": "successfully withdrew cash"}
@@ -118,7 +118,7 @@ def buyProduct(product:Product):
 
         #Get price of product and payment amount
         UserId = response["UserId"]
-        date = datetime.datetime.now().strftime("%Y-%m-%d")
+        timestamp = datetime.datetime.now()
         ticker = yf.Ticker(product.name)
         last_price = ticker.fast_info["lastPrice"]
         payment = last_price*product.amount
@@ -130,7 +130,7 @@ def buyProduct(product:Product):
         if current_amount>= payment:
             cursor.execute("UPDATE Positions SET Amount = Positions.Amount - '%s' WHERE UserId = '%s' AND Product = 'cash'"%(payment,UserId))
             cursor.execute("INSERT INTO Positions (UserId,Amount,Product) VALUES ('%s','%s','%s') ON CONFLICT (UserId,Product) DO UPDATE SET Amount = Positions.Amount + '%s' " % (UserId,product.amount,product.name, product.amount))
-            cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Date) VALUES ('%s','%s','%s','%s','%s')" % (UserId,product.name,product.amount,last_price,date))
+            cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Timestamp) VALUES ('%s','%s','%s','%s','%s')" % (UserId,product.name,product.amount,last_price,timestamp))
             conn.commit()
 
             return {"message":"Sucessfully executed buy"}
@@ -155,7 +155,7 @@ def sellProduct(product:Product):
 
         #Get price of product and payment amount
         UserId = response["UserId"]
-        date = datetime.datetime.now().strftime("%Y-%m-%d")
+        timestamp = datetime.datetime.now()
         ticker = yf.Ticker(product.name)
         last_price = ticker.fast_info["lastPrice"]
         payment_received = last_price*product.amount
@@ -167,7 +167,7 @@ def sellProduct(product:Product):
         if current_amount>= product.amount:
             cursor.execute("UPDATE Positions SET Amount = Positions.Amount + '%s' WHERE UserId = '%s' AND Product = 'cash'"%(payment_received,UserId)) #Increase cash by amount received
             cursor.execute("UPDATE Positions SET Amount = Positions.amount - '%s' WHERE Product = '%s'"% (product.amount,product.name)) #Reduce amount of product held
-            cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Date) VALUES ('%s','%s','%s','%s','%s')" % (UserId,product.name,-product.amount,last_price,date)) #Insert record in history with negative amount to indicate sell
+            cursor.execute("INSERT INTO TransactionHistory (UserID,Product,Amount,Price,Timestamp) VALUES ('%s','%s','%s','%s','%s')" % (UserId,product.name,-product.amount,last_price,timestamp)) #Insert record in history with negative amount to indicate sell
             conn.commit()
 
             return {"message":"Sucessfully executed sell"}
@@ -211,3 +211,29 @@ def getHistory(auth:Signup):
 
     else:
         return {"message":"unable to retrieve positions"}
+    
+@app.post("/getBalanceOverTime")
+def getBalanceOverTime(auth:Signup):
+
+    login_data = Signup(username = auth.username,password = auth.password)
+    response = login(login_data)
+
+    if response["message"] == "logged in successfully":
+        UserId = response["UserId"]
+        cursor.execute("SELECT * FROM TransactionHistory WHERE UserId = '%s'"%(UserId))
+        history = cursor.fetchall()
+
+        print("DEBUG History" ,history)
+
+        #1. we sort every transaction by date
+        #2. we get a list of all unique dates that have transactions
+        #3. on the first date we add together all the products 
+        #4. on each subsequent date we also add up products and carry over those from the previous date
+        #5. we should end up with a list of dates with products owned on that date
+        #6. we extend the list to cover dates without transactions so we have a full list until today.
+        #7. we now want to find the price of each product on each day :  data = yf.Ticker("ABEV3.SA") , data = data.history(start="2010-01-01",  end=now)
+
+        return {"message":history}
+
+    else:
+        return {"message":"unable to retrieve history"}
