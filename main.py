@@ -233,7 +233,19 @@ def getBalanceOverTime(auth:Signup):
         #6. we extend the list to cover dates without transactions so we have a full list until today.
         #7. we now want to find the price of each product on each day :  data = yf.Ticker("ABEV3.SA") , data = data.history(start="2010-01-01",  end=now)
 
-        return {"message":history}
+        #1
+        history.sort(key=lambda x:x[4])
+        
+        #2.
+        dates_dict = {}
+        for record in history:
+            dates_dict[record[4].date()] = []
+        for record in history:
+            dates_dict[record[4].date()].append([record[1],record[2],record[3]])
+
+        print("dict", dates_dict)
+
+        return {"message":"placeholder"}
 
     else:
         return {"message":"unable to retrieve history"}
