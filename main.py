@@ -6,7 +6,8 @@ from models.Signup import Signup
 from models.CashAmount import CashAmount
 import datetime
 import yfinance as yf
-
+from collections import Counter
+import pandas as pd
 
 global UserId
 
@@ -225,25 +226,49 @@ def getBalanceOverTime(auth:Signup):
 
         print("DEBUG History" ,history)
 
-        #1. we sort every transaction by date
-        #2. we get a list of all unique dates that have transactions
-        #3. on the first date we add together all the products 
-        #4. on each subsequent date we also add up products and carry over those from the previous date
-        #5. we should end up with a list of dates with products owned on that date
-        #6. we extend the list to cover dates without transactions so we have a full list until today.
-        #7. we now want to find the price of each product on each day :  data = yf.Ticker("ABEV3.SA") , data = data.history(start="2010-01-01",  end=now)
-
-        #1
+        # This block creates a dictionary with the DB retrieved dates as keys and values as dictionaries in form {product: amount}. It needs cleaning up and optimising.
         history.sort(key=lambda x:x[4])
-        
-        #2.
         dates_dict = {}
+        product_hist_to_retrieve = []
         for record in history:
-            dates_dict[record[4].date()] = []
+            dates_dict[record[4].date()] = {}
         for record in history:
-            dates_dict[record[4].date()].append([record[1],record[2],record[3]])
+            dates_dict[record[4].date()][record[1]] = 0
+            if record[1] not in product_hist_to_retrieve:
+                product_hist_to_retrieve.append(record[1])
+        for record in history:
+            dates_dict[record[4].date()][record[1]] = dates_dict[record[4].date()][record[1]] + record[2]
+
+        #This gets the list dates not on the list - from the earliest date on the db to now. It adds them to the dates_dict created above - "filling in the gaps"
+        addtional_dates = pd.date_range(start=min(list(dates_dict.keys())),end=datetime.datetime.now().date())
+        addtional_dates = addtional_dates.to_pydatetime()
+        print("Additional dates",addtional_dates)
+        for date in addtional_dates:
+            date = date.date()
+            if date not in list(dates_dict.keys()):
+                dates_dict[date] = {}
+            else:
+                print("This date was already in file ", date)
 
         print("dict", dates_dict)
+        print("________________________________________")
+        
+        #sort dates as the next step will not work if the dates are not in order
+        keys = list(dates_dict.keys())
+        keys.sort()
+        dates_dict = {i: dates_dict[i] for i in keys}
+        print("after sorting added dates",dates_dict)
+        print("________________________________________")
+        
+        #Iteratively add the previous date's positions to the next to get the total positions held on each date
+        dates = list(dates_dict.keys())
+        print("dates range",dates)
+        print("_____________________")
+        for i in range(1,len(dates)):
+            dates_dict[dates[i]] = dict(Counter(dates_dict[dates[i]])+Counter(dates_dict[dates[i-1]]))
+
+        print("new dict",dates_dict)
+
 
         return {"message":"placeholder"}
 
