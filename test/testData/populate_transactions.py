@@ -5,5 +5,6 @@ testdata = [{"product":"cash","amount":10000, "price":1 , "timestamp":"22/08/202
             {"product":"TSLA","amount":1, "price":200 , "timestamp":"22/08/2025 10:00:00.00"},
             {"product":"MSFT","amount":1, "price":100 , "timestamp":"23/08/2025 10:00:00.00"},
             {"product":"MSFT","amount":3, "price":200 , "timestamp":"23/08/2025 11:00:00.00"},
-            {"product":"TSLA","amount":-1, "price":200 , "timestamp":"22/08/2025 10:00:00.00"}
+            {"product":"TSLA","amount":-1, "price":200 , "timestamp":"22/08/2025 10:00:00.00"},
+            {"product":"CA.PA","amount":1, "price":10, "timestamp":"22/08/2025 10:00:00.00"}
             ]

@@ -212,6 +212,24 @@ def getHistory(auth:Signup):
 
     else:
         return {"message":"unable to retrieve positions"}
+
+def calculate_values(date,dates_dict,tickers):
+    "helper function for balanceOverTime endpoint"
+
+    value = 0
+    for product in list(dates_dict[date].keys()):
+        try:
+            if product == 'cash':
+                value += dates_dict[date]['cash']
+
+            else:
+                value += tickers[product].at[str(date),'Close']
+
+        except KeyError as e:
+            print("Weekend error ",e, " setting value to 0")
+            value = 0
+    
+    return value
     
 @app.post("/getBalanceOverTime")
 def getBalanceOverTime(auth:Signup):
@@ -236,6 +254,7 @@ def getBalanceOverTime(auth:Signup):
             dates_dict[record[4].date()][record[1]] = 0
             if record[1] not in product_hist_to_retrieve:
                 product_hist_to_retrieve.append(record[1])
+        product_hist_to_retrieve.remove("cash")
         for record in history:
             dates_dict[record[4].date()][record[1]] = dates_dict[record[4].date()][record[1]] + record[2]
 
@@ -269,8 +288,25 @@ def getBalanceOverTime(auth:Signup):
 
         print("new dict",dates_dict)
 
+        #Get prices for each product in list from start to now
+        tickers = {}
+        for product in product_hist_to_retrieve:
+            tickers[product] = yf.Ticker(product).history(start = list(dates_dict.keys())[0],end= list(dates_dict.keys())[-1])
+            tickers[product].index = pd.to_datetime(tickers[product].index).date
+            tickers[product].index = tickers[product].index.astype(str)
 
-        return {"message":"placeholder"}
+        print("Tickers history ",tickers)
+
+        #Calculate value of total products held on each day
+        values = {}
+        for date in list(dates_dict.keys()):
+            values[date] = calculate_values(date,dates_dict,tickers)
+            if values[date] == 0:
+                values.pop(date)
+
+        print("Final values on each day ",values)
+
+        return {"message":values}
 
     else:
         return {"message":"unable to retrieve history"}
