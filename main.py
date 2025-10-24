@@ -46,16 +46,15 @@ def login(login:Signup):
 
     result = cursor.fetchall()
 
-    #Set the userId so that it can be used in future queries
-    UserId = result[0][0]
-
     if len(result)!=1:
         return {"message":"login failed"}
     
-    else:
-
-        return {"message": "logged in successfully","UserId": UserId}
     
+    else:
+        #Set the userId so that it can be used in future queries
+        UserId = result[0][0]
+        return {"message": "logged in successfully","UserId": UserId}
+
 
 @app.post("/deposit")
 def deposit_cash(amount:CashAmount):
