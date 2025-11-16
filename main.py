@@ -309,3 +309,21 @@ def getBalanceOverTime(auth:Signup):
 
     else:
         return {"message":"unable to retrieve history"}
+    
+
+@app.post("/deleteUser")
+def deleteUser(auth:Signup):
+
+    login_data = Signup(username = auth.username,password = auth.password)
+    response = login(login_data)
+
+    if response["message"] == "logged in successfully":
+        UserId = response["UserId"]
+        print("User ID ",UserId)
+        cursor.execute("DELETE FROM Users WHERE UserId='%s'"%(UserId))
+        conn.commit()
+        print(cursor.statusmessage)
+        return {"message":"user deleted successfully"}
+
+    else:
+        return {"message":"unable to delete user"}
