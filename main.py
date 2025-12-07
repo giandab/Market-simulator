@@ -26,7 +26,6 @@ def signup(signup:Signup):
 
     cursor.execute("SELECT * FROM Users WHERE Username  = '%s'" % (signup.username))
     result = cursor.fetchall()
-    print(result) 
 
     if len(result)!=0:
 
@@ -225,7 +224,6 @@ def calculate_values(date,dates_dict,tickers):
                 value += tickers[product].at[str(date),'Close']
 
         except KeyError as e:
-            print("Weekend error ",e, " setting value to 0")
             value = 0
     
     return value
@@ -241,71 +239,60 @@ def getBalanceOverTime(auth:Signup):
         cursor.execute("SELECT * FROM TransactionHistory WHERE UserId = '%s'"%(UserId))
         history = cursor.fetchall()
 
-        print("DEBUG History" ,history)
+        if len(history) ==0:
+            return {"message","No Balance history to show yet"}
+        else:
 
-        # This block creates a dictionary with the DB retrieved dates as keys and values as dictionaries in form {product: amount}. It needs cleaning up and optimising.
-        history.sort(key=lambda x:x[4])
-        dates_dict = {}
-        product_hist_to_retrieve = []
-        for record in history:
-            dates_dict[record[4].date()] = {}
-        for record in history:
-            dates_dict[record[4].date()][record[1]] = 0
-            if record[1] not in product_hist_to_retrieve:
-                product_hist_to_retrieve.append(record[1])
-        product_hist_to_retrieve.remove("cash")
-        for record in history:
-            dates_dict[record[4].date()][record[1]] = dates_dict[record[4].date()][record[1]] + record[2]
+            # This block creates a dictionary with the DB retrieved dates as keys and values as dictionaries in form {product: amount}. It needs cleaning up and optimising.
+            history.sort(key=lambda x:x[4])
+            dates_dict = {}
+            product_hist_to_retrieve = []
+            for record in history:
+                dates_dict[record[4].date()] = {}
+            for record in history:
+                dates_dict[record[4].date()][record[1]] = 0
+                if record[1] not in product_hist_to_retrieve:
+                    product_hist_to_retrieve.append(record[1])
+            product_hist_to_retrieve.remove("cash")
+            for record in history:
+                dates_dict[record[4].date()][record[1]] = dates_dict[record[4].date()][record[1]] + record[2]
 
-        #This gets the list dates not on the list - from the earliest date on the db to now. It adds them to the dates_dict created above - "filling in the gaps"
-        addtional_dates = pd.date_range(start=min(list(dates_dict.keys())),end=datetime.datetime.now().date())
-        addtional_dates = addtional_dates.to_pydatetime()
-        print("Additional dates",addtional_dates)
-        for date in addtional_dates:
-            date = date.date()
-            if date not in list(dates_dict.keys()):
-                dates_dict[date] = {}
-            else:
-                print("This date was already in file ", date)
+            #This gets the list dates not on the list - from the earliest date on the db to now. It adds them to the dates_dict created above - "filling in the gaps"
+            addtional_dates = pd.date_range(start=min(list(dates_dict.keys())),end=datetime.datetime.now().date())
+            addtional_dates = addtional_dates.to_pydatetime()
+            for date in addtional_dates:
+                date = date.date()
+                if date not in list(dates_dict.keys()):
+                    dates_dict[date] = {}
+                else:
+                    pass
 
-        print("dict", dates_dict)
-        print("________________________________________")
-        
-        #sort dates as the next step will not work if the dates are not in order
-        keys = list(dates_dict.keys())
-        keys.sort()
-        dates_dict = {i: dates_dict[i] for i in keys}
-        print("after sorting added dates",dates_dict)
-        print("________________________________________")
-        
-        #Iteratively add the previous date's positions to the next to get the total positions held on each date
-        dates = list(dates_dict.keys())
-        print("dates range",dates)
-        print("_____________________")
-        for i in range(1,len(dates)):
-            dates_dict[dates[i]] = dict(Counter(dates_dict[dates[i]])+Counter(dates_dict[dates[i-1]]))
+            
+            #sort dates as the next step will not work if the dates are not in order
+            keys = list(dates_dict.keys())
+            keys.sort()
+            dates_dict = {i: dates_dict[i] for i in keys}
+            
+            #Iteratively add the previous date's positions to the next to get the total positions held on each date
+            dates = list(dates_dict.keys())
+            for i in range(1,len(dates)):
+                dates_dict[dates[i]] = dict(Counter(dates_dict[dates[i]])+Counter(dates_dict[dates[i-1]]))
 
-        print("new dict",dates_dict)
+            #Get prices for each product in list from start to now
+            tickers = {}
+            for product in product_hist_to_retrieve:
+                tickers[product] = yf.Ticker(product).history(start = list(dates_dict.keys())[0],end= list(dates_dict.keys())[-1])
+                tickers[product].index = pd.to_datetime(tickers[product].index).date
+                tickers[product].index = tickers[product].index.astype(str)
 
-        #Get prices for each product in list from start to now
-        tickers = {}
-        for product in product_hist_to_retrieve:
-            tickers[product] = yf.Ticker(product).history(start = list(dates_dict.keys())[0],end= list(dates_dict.keys())[-1])
-            tickers[product].index = pd.to_datetime(tickers[product].index).date
-            tickers[product].index = tickers[product].index.astype(str)
+            #Calculate value of total products held on each day
+            values = {}
+            for date in list(dates_dict.keys()):
+                values[date] = calculate_values(date,dates_dict,tickers)
+                if values[date] == 0:
+                    values.pop(date)
 
-        print("Tickers history ",tickers)
-
-        #Calculate value of total products held on each day
-        values = {}
-        for date in list(dates_dict.keys()):
-            values[date] = calculate_values(date,dates_dict,tickers)
-            if values[date] == 0:
-                values.pop(date)
-
-        print("Final values on each day ",values)
-
-        return {"message":values}
+            return {"message":values}
 
     else:
         return {"message":"unable to retrieve history"}
@@ -319,10 +306,8 @@ def deleteUser(auth:Signup):
 
     if response["message"] == "logged in successfully":
         UserId = response["UserId"]
-        print("User ID ",UserId)
         cursor.execute("DELETE FROM Users WHERE UserId='%s'"%(UserId))
         conn.commit()
-        print(cursor.statusmessage)
         return {"message":"user deleted successfully"}
 
     else:
