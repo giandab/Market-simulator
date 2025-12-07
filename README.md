@@ -12,12 +12,17 @@ The following endpoints are available:
  - getHistory
  - getPositions
 
+## Docker setup
 
-## Local Setup
+1. Ensure [Docker is istalled](https://www.docker.com/get-started/)
+2. Edit the `config.ini` and `compose.yaml` replacing with your DB_NAME, DB_PASSWORD and DB_USERNAME.
+3. Run `docker compose up --build`
+
+## Manual Setup
 
 1. [Install Postgres](https://jdbc.postgresql.org/download/)
 2. Run `pipenv install` to install dependencies. See guide to [pipenv](https://pipenv.pypa.io/en/latest/installation.html)
-3. Create a `config.ini` file in the root of the project in the following format, replacing as appropriate with the values used when setting up postgres:
+3. Edit the `config.ini` file, replacing as appropriate with the values used when setting up postgres:
 
 ```
 [postgresql]
