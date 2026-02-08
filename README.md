@@ -16,7 +16,7 @@ The following endpoints are available:
 
 1. Ensure [Docker is istalled](https://www.docker.com/get-started/)
 2. Edit the `config.ini` and `compose.yaml` replacing with your DB_NAME, DB_PASSWORD and DB_USERNAME.
-3. Run `docker compose up --build`
+3. Run `docker compose up --build`. This will also run the pytest integration tests.
 
 ## Manual Setup
 
@@ -35,5 +35,3 @@ host = localhost
 4. Run the `db_setup.py` file to create the tables.
 5. Run `pipenv shell` to start the virtual environment.
 6. Run `uvicorn main:app` to start the local server.
-
-To run local tests use the command `python -m pytest`
