@@ -30,7 +30,6 @@ def test_populate_transactions_history_db():
     
     response = client.post("/getBalanceOverTime",json={"username":user1.username,"password":user1.password})
 
-    print(response.json()["message"])
 
 def test_cleanup():
     #Cleanup - delete records and close connection

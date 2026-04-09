@@ -211,7 +211,7 @@ def getHistory(auth:Signup):
     else:
         return {"message":"unable to retrieve positions"}
 
-def calculate_values(date,dates_dict,tickers):
+def calculate_values(date,dates_dict,tickers,values):
     "helper function for balanceOverTime endpoint"
 
     value = 0
@@ -224,7 +224,7 @@ def calculate_values(date,dates_dict,tickers):
                 value += tickers[product].at[str(date),'Close']
 
         except KeyError as e:
-            value = 0
+            value = values[date+datetime.timedelta(days=-1)]
     
     return value
     
@@ -288,9 +288,7 @@ def getBalanceOverTime(auth:Signup):
             #Calculate value of total products held on each day
             values = {}
             for date in list(dates_dict.keys()):
-                values[date] = calculate_values(date,dates_dict,tickers)
-                if values[date] == 0:
-                    values.pop(date)
+                values[date] = calculate_values(date,dates_dict,tickers,values)
 
             return {"message":values}
 
