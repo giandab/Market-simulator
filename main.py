@@ -224,7 +224,13 @@ def calculate_values(date,dates_dict,tickers,values):
                 value += tickers[product].at[str(date),'Close']
 
         except KeyError as e:
-            value = values[date+datetime.timedelta(days=-1)]
+            try:
+                value = values[date+datetime.timedelta(days=-1)]
+            except:
+                #If a product is bought on a weekend (i.e. the first day is missing in the 'close' data)
+                #Then the above solution will cause an error as there is no index -1 in values
+                #This is a temp 'fix'
+                value = 0
     
     return value
     
