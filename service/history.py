@@ -96,14 +96,14 @@ def balance__over_time_service(cursor,auth):
             #Calculate value of total products held on each day
             values = {}
             for date in list(dates_dict.keys()):
-                values[date] = calculate_values(date,dates_dict,tickers,values)
+                values[date] = calculate_values(date,dates_dict,tickers)
 
             return {"message":values}
 
     else:
         return {"message":"unable to retrieve history"}
     
-def calculate_values(date,dates_dict,tickers,values):
+def calculate_values(date,dates_dict,tickers):
     "helper function for balanceOverTime endpoint"
 
     value = 0
@@ -113,15 +113,21 @@ def calculate_values(date,dates_dict,tickers,values):
                 value += dates_dict[date]['cash']
 
             else:
-                value += tickers[product].at[str(date),'Close']
+                value += getLastAvailableValue(date,tickers,product,dates_dict)
 
         except KeyError as e:
-            try:
-                value = values[date+datetime.timedelta(days=-1)]
-            except:
-                #If a product is bought on a weekend (i.e. the first day is missing in the 'close' data)
-                #Then the above solution will cause an error as there is no index -1 in values
-                #This is a temp 'fix'
-                value = 0
+            #If a product is bought on a weekend (i.e. the first day is missing in the 'close' data)
+            #Then the above solution will cause an error as there is no index -1 in values
+            #This is a temp 'fix'
+            value = 0
     
     return value
+
+def getLastAvailableValue(date,tickers,product,dates_dict):
+    if date in dates_dict.keys():
+        try:
+           return tickers[product].at[str(date),'Close']
+        except:
+           return getLastAvailableValue(date+datetime.timedelta(days=-1),tickers,product,dates_dict)
+    else:
+        return 0
