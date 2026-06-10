@@ -2,6 +2,10 @@
 
 A python fincancial market simulator api that stores information in a postgres db in three tables: Users, Positions and TransactionHistory. The [yfinance](https://github.com/ranaroussi/yfinance) api wrapper is used to retrieve financial data from Yahoo Finance.
 
+## UI
+
+A UI for the Simulator is available at [this repo](https://github.com/giandab/market-simulator-ui)
+
 ## Functionality
 
 The following endpoints are available:
